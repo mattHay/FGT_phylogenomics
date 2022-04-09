@@ -6,3 +6,5 @@ This repository is associated with a paper in preperation for submission (soon t
 
 ## Abstract
 The female genital tract microbiome impacts several important health outcomes, including preterm birth, cervical dysplasia, and susceptibility to sexually transmitted infections, such as HIV. However, our genetic and molecular understanding of microbes colonising the genital tract remains incomplete, especially in global communities where the burden of adverse reproductive outcomes is greatest. To address this lack of representation, we perform mass culturing and metagenomic sequencing. We combine these sequences with public genomes and perform the first comprehensive phylogenetic analysis of bacteria from the female genital tract, representing 605 species-level clades, 112 of which are first defined here. We identify new strain associations with geographical regions which may have implications for prospective intervention strategies. Further, our resolved taxonomy highlights previously obscured associations between the female genital tract microbiome and genital inflammation. This work proves a valuable resource for studying global women’s health.
+
+## Content 

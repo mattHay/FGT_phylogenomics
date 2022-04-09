@@ -1,4 +1,4 @@
-# PROJECT: Global phylogenetic structure of the female genital tract microbiome
+Global phylogenetic structure of the female genital tract microbiome
 
 This repository is associated with a paper in preperation for submission (soon to be bioRxiv'd):
 

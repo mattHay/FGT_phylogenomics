@@ -9,4 +9,4 @@ Species genome binning is a method by which genomes are grouped by genetic simil
 
 2) SGBs were produced using "SGB_generation.R"
 
-3) A representative genome for each SGB was selected using scripts in "pick_rep_genome/"
+3) A representative genome for each SGB was selected using scripts in "pick_rep_genome_MASH/"

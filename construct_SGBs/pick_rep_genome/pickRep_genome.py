@@ -2,13 +2,15 @@
 
 import re
 
+#MAGs checkM summary
 assembled = {}
-for ent in open("checkM_QC_assignment-BEST-v2.tab", "r"):
+for ent in open("checkM_QC_assignment_MAG.tab", "r"):
     ent = ent.rstrip().split("\t")
 
     if re.search("MQ|HQ", ent[1]):
         assembled[ent[0].split("-FIN")[0]] = [ent[1]]
 
+#Cultured isolate checkM summary
 cultured = {}
 for ent in open("checkM_summary.tab", "r"):
     ent = ent.rstrip().split("\t")
@@ -16,6 +18,7 @@ for ent in open("checkM_summary.tab", "r"):
     if re.search("HQ|MQ", ent[1]):
         cultured[ent[0].split("-FIN")[0]] = ent[1]
 
+#CheckM summary for genomes which had contamination removed using refineM
 for ent in open("refineM_QC.tab", "r"):
 
     ent = ent.rstrip().split("\t")
@@ -25,18 +28,18 @@ for ent in open("refineM_QC.tab", "r"):
         cultured[genome] = [ent[1]]
  
 SGB_genome = {}
-for ent in open("SGB_assignment_26Nov2019.tab", "r"):
+for ent in open("SGB_assignment_MASH.tab", "r"):
     
     ent = ent.rstrip().split("\t")
     SGB = "SGB" + ent[1]
     genome = ent[0]
 
+    #REGEX for rep genomes
     if re.search("SAM|GC|C0|SAM|GC|BVAB|TM7|NZ", genome) and not re.search("bin", genome):
         rank = 1
 
     elif genome in cultured:
         
-
         if cultured[genome] == "HQ":
             rank = 2
 
@@ -54,10 +57,8 @@ for ent in open("SGB_assignment_26Nov2019.tab", "r"):
     else:
 
         #this filters out all the LQ genomes
-        print genome
         continue
         
-    
     if SGB in SGB_genome:
         
         if rank < SGB_genome[SGB][1]:
@@ -70,7 +71,7 @@ for ent in open("SGB_assignment_26Nov2019.tab", "r"):
 
 #print "\n".join([x[0] for x in SGB_genome.values()])
 
-output = open("representative_genomes_7August2020.tab", "w")
+output = open("representative_genomes_MASH.tab", "w")
 for SGB in SGB_genome:
 
     output.write(SGB + "\t" + SGB_genome[SGB][0] + "\n")

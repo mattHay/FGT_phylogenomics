@@ -1,4 +1,5 @@
-#Pick representative genome for each SGB based on quality with refSeq genomes being prioritised over new isolate genomes and isolates prioritised over metagenomic assembled genomes
+#Pick representative genome for each SGB based on quality with refSeq genomes 
+#being prioritised over new isolate genomes and isolates prioritised over metagenomic assembled genomes
 
 import re
 

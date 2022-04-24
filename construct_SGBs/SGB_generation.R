@@ -3,7 +3,7 @@
 
 library(fastcluster)
 
-#MASH table; 2.8GB so not provided here. The scripts to generate this table are in the "mash_table" directory
+#MASH table; 2.8GB so not provided here.
 mashDists = read.table("mashDistances_26Nov2019.tab", header = T, row.names = 1, check.names = F)
 dists = as.dist(mashDists)
 

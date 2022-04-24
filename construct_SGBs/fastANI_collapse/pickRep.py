@@ -3,7 +3,7 @@
 import re
 
 assembled = {}
-for ent in open("checkM_QC_assignment-BEST-v2.tab", "r"):
+for ent in open("checkM_QC_assignment_MAG.tab", "r"):
     ent = ent.rstrip().split("\t")
 
     if re.search("MQ|HQ", ent[1]):
@@ -26,7 +26,7 @@ for ent in open("refineM_QC.tab", "r"):
 
 
 SGB_genome = {}
-for ent in open("SGB_assignment_REASIGNED_AFTER_COLLAPSE_27Nov19.tab", "r"):
+for ent in open("SGB_assignment_REASIGNED_AFTER_COLLAPSE.tab", "r"):
     
     ent = ent.rstrip().split("\t")
     SGB = ent[1]
@@ -70,7 +70,7 @@ for ent in open("SGB_assignment_REASIGNED_AFTER_COLLAPSE_27Nov19.tab", "r"):
 
 #print "\n".join([x[0] for x in SGB_genome.values()])
 
-output = open("representative_COLLAPSED_genomes_27Nov2019.tab", "w")
+output = open("representative_genomes_FINAL.tab", "w")
 for SGB in SGB_genome:
 
     output.write(SGB + "\t" + SGB_genome[SGB][0] + "\n")

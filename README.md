@@ -9,5 +9,5 @@ The female genital tract microbiome impacts several important health outcomes, i
 
 ## Content 
 
+<img width="35%" align="right" alt="Github" src="hhttps://github.com/mattHay/mattHay/blob/main/schematics.pdf" />
 
-https://github.com/mattHay/mattHay/blob/main/schematics.pdf

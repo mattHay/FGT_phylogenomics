@@ -11,4 +11,4 @@ Species genome binning is a method by which genomes are grouped by genetic simil
 
 3) A representative genome for each SGB was selected using scripts in "pick_rep_genome_MASH/"
 
-4) Further collapse SGBs using pairwise ANI calculation using fastANI, assignment to all 26K genomes as well as representatives is found in "fastANI_collapse/"
+4) SGBs were merged using pairwise ANI calculation generated using fastANI; assignment to all 26K genomes as well as representatives is found in "fastANI_collapse/"

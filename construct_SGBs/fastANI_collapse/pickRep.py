@@ -10,7 +10,7 @@ for ent in open("checkM_QC_assignment_MAG.tab", "r"):
         assembled[ent[0]] = [ent[1]]
 
 cultured = {}
-for ent in open("checkM_summary.tab", "r"):
+for ent in open("checkM_QC_assignment_Isolates.tab", "r"):
     ent = ent.rstrip().split("\t")
 
     if re.search("HQ|MQ", ent[1]):

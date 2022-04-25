@@ -13,7 +13,7 @@ for ent in open("checkM_QC_assignment_MAG.tab", "r"):
 
 #Cultured isolate checkM summary
 cultured = {}
-for ent in open("checkM_summary.tab", "r"):
+for ent in open("checkM_QC_assignment_Isolates.tab", "r"):
     ent = ent.rstrip().split("\t")
 
     if re.search("HQ|MQ", ent[1]):
@@ -58,6 +58,7 @@ for ent in open("SGB_assignment_MASH.tab", "r"):
     else:
 
         #this filters out all the LQ genomes
+        print(genome)
         continue
         
     if SGB in SGB_genome:

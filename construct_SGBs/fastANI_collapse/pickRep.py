@@ -70,7 +70,7 @@ for ent in open("SGB_assignment_REASIGNED_AFTER_COLLAPSE.tab", "r"):
 
 #print "\n".join([x[0] for x in SGB_genome.values()])
 
-output = open("representative_genomes_FINAL.tab", "w")
+output = open("representative_genomes_fastANImerge.tab", "w")
 for SGB in SGB_genome:
 
     output.write(SGB + "\t" + SGB_genome[SGB][0] + "\n")

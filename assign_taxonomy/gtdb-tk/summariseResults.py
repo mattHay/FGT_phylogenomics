@@ -6,7 +6,7 @@ count = 0
 output = open("gtdb-tk_classification.tab" ,"w")
 
 genome_to_SGB ={}
-for ent in open("SGB_assignment_REASIGNED_AFTER_COLLAPSE.tab", "r"):
+for ent in open("femMCat_SGB_assignment.tab", "r"):
     ent = ent.rstrip().split("\t")
     genome_to_SGB[ent[0]] = ent[1]
 

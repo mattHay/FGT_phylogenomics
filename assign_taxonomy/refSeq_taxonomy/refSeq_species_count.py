@@ -5,7 +5,7 @@ for ent in open("refSeq_species_to_genome.tab", "r"):
     genome_to_species[ent[0]] = ent[1]
 
 species_to_SGB = {}
-for ent in open("SGB_assignment_REASIGNED_AFTER_COLLAPSE.tab", "r"):
+for ent in open("femMCat_SGB_assignment.tab", "r"):
     ent = ent.rstrip().split("\t")
     genome = ent[0]
     SGB = ent[1]

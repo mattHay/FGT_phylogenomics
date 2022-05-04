@@ -26,7 +26,7 @@ for ent in glob.glob("phylophlan_out/*.tsv"):
 
                 SGB_to_repGenome[genome] = "new_SGB"
 
-for ent in open("SGB_assignment_REASIGNED_AFTER_COLLAPSE.tab", "r"):
+for ent in open("femMCat_SGB_assignment.tab", "r"):
     ent = ent.rstrip().split("\t")
     genome = ent[0]
 

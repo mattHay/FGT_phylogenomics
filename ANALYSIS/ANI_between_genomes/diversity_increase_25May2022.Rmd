@@ -1,0 +1,585 @@
+---
+title: "ANI_pangenome_increase_by_demo"
+author: "Matt R Hayward"
+date: "October 2, 2021"
+output: html_document
+---
+
+ANI and pangenome expansion by genome demographic
+
+```{r}
+library(ggplot2)
+library(ggrepel)
+library(cowplot)
+```
+
+ANI to closes reference
+
+```{r}
+ANI = read.table(file = "minimunm_distance_of_newGenome_to_ref_with_meta_1Oct2021.tab", sep = "\t", check.names = F)
+colnames(ANI) = c("genome", "ANI", "SGB_num", "species", "country", "ethnicity", "status")
+ANI$SGB = paste(ANI$species, ANI$SGB_num, sep = "-")
+ANI = as.data.frame(ANI)
+```
+
+Summarise SGB North America and South Africa with more then 5 genomes in each
+
+```{r}
+SGBs = unique(as.character(ANI$SGB))
+keepers = NULL
+
+for(SGB in SGBs){
+ 
+  ANI_SGB = ANI[which(ANI$SGB == SGB),]
+  SA_genomes = ANI_SGB[which(ANI_SGB$country == "South_Africa"),]
+  NA_genomes = ANI_SGB[which(ANI_SGB$country == "North_America"),]
+  
+  if(length(SA_genomes$country) > 5 & length(NA_genomes$country) > 5){
+    
+    keepers = rbind(keepers, c(SGB, length(SA_genomes$country), length(NA_genomes$country)))
+    
+  }
+}
+
+keepers = as.data.frame(keepers)
+colnames(keepers) = c("SGB", "south_africa", "north_american")
+
+keepers_melt = rbind(cbind(as.character(keepers$SGB), as.numeric(as.character(keepers$south_africa)), rep("South", length(keepers$south_africa))), cbind(as.character(keepers$SGB), as.numeric(as.character(keepers$north_american)), rep("North", length(keepers$north_american))))
+
+keepers_melt = as.data.frame(keepers_melt)
+colnames(keepers_melt) = c("SGB", "count", "country")
+keepers_melt$count = as.numeric(as.character(keepers_melt$count))
+
+keepers_melt$SGB = factor(keepers_melt$SGB, levels = rev(c(sort(unique(as.character(keepers_melt$SGB))))), ordered = T)
+```
+
+
+Percentage novel pangenome by country by above SGB
+
+```{r}
+pangenome_size = read.table(file = "sgb_to_demo_to_count_pangenome_1Oct2021.tab", sep = "\t", check.names = F)
+colnames(pangenome_size) = c("SGB", "demo", "genes")
+
+pangenome_expansion = NULL
+for(SGB in as.character(keepers$SGB)){
+  
+  pangenome_sgb = pangenome_size[which(pangenome_size$SGB == SGB),]
+  increase_pan = pangenome_sgb[which(pangenome_sgb$demo == "pangenome_size"),]$genes - pangenome_sgb[which(pangenome_sgb$demo == "ref"),]$genes
+  
+  south_percent = (pangenome_sgb[which(pangenome_sgb$demo == "South_Africa"),]$genes / increase_pan) * 100
+  north_percent = (pangenome_sgb[which(pangenome_sgb$demo == "North_America"),]$genes / increase_pan) * 100
+  
+  pangenome_expansion = rbind(pangenome_expansion, c(SGB, south_percent,  rep("South", length(south_percent))))
+  pangenome_expansion = rbind(pangenome_expansion, c(SGB, north_percent,  rep("North", length(north_percent))))
+  
+}
+
+pangenome_expansion = as.data.frame(pangenome_expansion)
+pangenome_expansion_nz = pangenome_expansion[-grep("SGB", pangenome_expansion$V2),]
+```
+
+Percentage novel Virulence
+
+```{r}
+vf_size = read.table(file = "vf_to_SGB_genome_demographics.tab", sep = "\t", check.names = F)
+colnames(vf_size) = c("SGB", "demo", "genes")
+
+vf_expansion = NULL
+for(SGB in as.character(keepers$SGB)){
+  
+  vf_sgb = vf_size[which(vf_size$SGB == SGB),]
+  increase_vf = vf_sgb[which(vf_sgb$demo == "total"),]$genes - vf_sgb[which(vf_sgb$demo == "ref"),]$genes
+  
+  south_percent = (vf_sgb[which(vf_sgb$demo == "South_Africa"),]$genes / increase_vf) * 100
+  north_percent = (vf_sgb[which(vf_sgb$demo == "North_America"),]$genes / increase_vf) * 100
+  
+  if(length(south_percent) > 0 & length(north_percent) > 0){
+    
+      vf_expansion = rbind(vf_expansion, c(SGB, south_percent,  rep("South", length(south_percent))))
+      vf_expansion = rbind(vf_expansion, c(SGB, north_percent,  rep("North", length(north_percent))))
+  
+  }
+}
+
+vf_expansion = as.data.frame(vf_expansion)
+```
+
+KO expansion
+
+```{r}
+ko_size = read.table(file = "ko_to_SGB_genome_demographics.tab", sep = "\t", check.names = F)
+colnames(ko_size) = c("SGB", "demo", "genes")
+
+ko_expansion = NULL
+for(SGB in as.character(keepers$SGB)){
+  
+  ko_sgb = ko_size[which(ko_size$SGB == SGB),]
+  increase_ko = ko_sgb[which(ko_sgb$demo == "total"),]$genes - ko_sgb[which(ko_sgb$demo == "ref"),]$genes
+  
+  south_percent = (ko_sgb[which(ko_sgb$demo == "South_Africa"),]$genes / increase_ko) * 100
+  north_percent = (ko_sgb[which(ko_sgb$demo == "North_America"),]$genes / increase_ko) * 100
+  
+  if(length(south_percent) > 0 & length(north_percent) > 0){
+    
+      ko_expansion = rbind(ko_expansion, c(SGB, south_percent,  rep("South", length(south_percent))))
+      ko_expansion = rbind(ko_expansion, c(SGB, north_percent,  rep("North", length(north_percent))))
+  
+  }
+}
+
+ko_expansion = as.data.frame(ko_expansion)
+```
+
+Pangenome size with contribtion by different geog for making a stacked barplot, refSeq, North-South, North, South
+
+```{r}
+pangenome_overlap = read.table(file = "sgb_to_demo_to_count_pangenome_withOverlap_21Oct2021.tab", sep = "\t", check.names = F)
+colnames(pangenome_overlap) = c("SGB", "country", "geneCount")
+#pangenome_overlap[grep("Gard", pangenome_overlap$SGB),]
+```
+
+Virulence percentage overlap, south and north for stacked barplot
+
+```{r}
+vf_overlap = read.table(file = "vf_to_SGB_genome_demographics_with_overlap.tab", sep = "\t", check.names = F)
+colnames(vf_overlap) = c("SGB", "country", "geneCount")
+```
+
+Metabolism percentage overlap, south and north for stacked barplot
+
+```{r}
+ko_overlap = read.table(file = "ko_to_SGB_genome_demographics_with_overlap.tab", sep = "\t", check.names = F)
+colnames(ko_overlap) = c("SGB", "country", "geneCount")
+```
+
+Gene counts by geography
+
+```{r}
+gene_counts = read.table(file = "geneCount_adjusted_with_SGB_withGeog_3Oct2021.tab", sep = "\t", check.names = F)
+colnames(gene_counts) = c("genome", "SGB", "geneCount", "country")
+gene_counts$geneCount = ceiling(gene_counts$geneCount)
+```
+
+Remove SGBS missing from one of the data sets
+
+```{r}
+shared_sgbs = Reduce(intersect, list(ko_expansion$V1, vf_expansion$V1, pangenome_expansion_nz$V1, as.character(ANI$SGB), gene_counts$SGB, pangenome_overlap$SGB, vf_overlap$SGB))
+shared_sgbs = shared_sgbs[-c(15,16, 7)]
+
+shared_sgbs_sorted = sort(shared_sgbs[grep("Gard", shared_sgbs)])
+shared_sgbs_sorted = c(shared_sgbs_sorted, sort(shared_sgbs[grep("Lacto", shared_sgbs)]))
+shared_sgbs_sorted = c(shared_sgbs_sorted, sort(shared_sgbs[grep("Prev", shared_sgbs)]))
+shared_sgbs_sorted = c(shared_sgbs_sorted, sort(shared_sgbs[-grep("Prev|Gard|Lacto", shared_sgbs)]))
+
+shared_sgbs = rev(shared_sgbs_sorted)
+#shared_sgbs = rev(sort(shared_sgbs))
+
+ko_expansion_shared = ko_expansion[ko_expansion$V1 %in% shared_sgbs,]
+colnames(ko_expansion_shared) = c("SGB", "percent", "country")
+ko_expansion_shared$SGB = factor(ko_expansion_shared$SGB, levels = shared_sgbs, ordered = T)
+ko_expansion_shared$percent = floor(as.numeric(as.character(ko_expansion_shared$percent)))
+
+vf_expansion_shared = vf_expansion[vf_expansion$V1 %in% shared_sgbs,]
+colnames(vf_expansion_shared) = c("SGB", "percent", "country")
+vf_expansion_shared$SGB = factor(vf_expansion_shared$SGB, levels = shared_sgbs, ordered = T)
+vf_expansion_shared$percent = floor(as.numeric(as.character(vf_expansion_shared$percent)))
+
+pangenome_expansion_nz_shared = pangenome_expansion_nz[pangenome_expansion_nz$V1 %in% shared_sgbs,]
+colnames(pangenome_expansion_nz_shared) = c("SGB", "percent", "country")
+pangenome_expansion_nz_shared$SGB = factor(pangenome_expansion_nz_shared$SGB, levels = shared_sgbs, ordered = T)
+pangenome_expansion_nz_shared$percent = floor(as.numeric(as.character(pangenome_expansion_nz_shared$percent)))
+
+pangenome_overlap_shared = pangenome_overlap[pangenome_overlap$SGB %in% shared_sgbs,]
+pangenome_overlap_shared$SGB = factor(pangenome_overlap_shared$SGB, levels = shared_sgbs, ordered = T)
+
+vf_overlap_shared = vf_overlap[vf_overlap$SGB %in% shared_sgbs,]
+vf_overlap_shared$SGB = factor(vf_overlap_shared$SGB, levels = shared_sgbs, ordered = T)
+
+ko_overlap_shared = ko_overlap[ko_overlap$SGB %in% shared_sgbs,]
+ko_overlap_shared$SGB = factor(ko_overlap_shared$SGB, levels = shared_sgbs, ordered = T)
+
+gene_counts_shared = gene_counts[gene_counts$SGB %in% shared_sgbs,]
+gene_counts_shared = gene_counts_shared[grep("North|South", gene_counts_shared$country),]
+gene_counts_shared = gene_counts_shared[-which(gene_counts_shared$geneCount > 3000),]
+gene_counts_shared$SGB = factor(gene_counts_shared$SGB, levels = shared_sgbs, ordered = T)
+
+keepers_melt_shared = keepers_melt[as.character(keepers_melt$SGB) %in% shared_sgbs,]
+keepers_melt_shared$SGB = factor(keepers_melt_shared$SGB, levels = shared_sgbs, ordered = T)
+
+ANI_shared = ANI[ANI$SGB %in% shared_sgbs,]
+ANI_shared_nz = ANI_shared[which(ANI_shared$ANI < 4.9),]
+ANI_shared_nz = as.data.frame(ANI_shared_nz)
+ANI_shared_nz = ANI_shared_nz[grep("North|South", ANI_shared_nz$country),]
+colnames(ANI_shared_nz)[2] = "ANI_val"
+
+ANI_shared_nz$SGB = factor(ANI_shared_nz$SGB, levels = shared_sgbs, ordered = T)
+```
+
+Compute Wilcoxon for ANI expansion
+
+```{r}
+wilcoxon_out = NULL
+for(SGB in unique(as.character(ANI_shared_nz$SGB))){
+  
+  SGB_ani = ANI_shared_nz[which(ANI_shared_nz$SGB == SGB),]
+  ani_south = SGB_ani[which(SGB_ani$country == "South_Africa"),]$ANI_val
+  ani_north = SGB_ani[which(SGB_ani$country == "North_America"),]$ANI_val
+  
+  test_out = wilcox.test(ani_south, ani_north)
+  wilcoxon_out = rbind(wilcoxon_out, c(SGB, test_out$p.value)) 
+
+}
+
+wilcoxon_out = as.data.frame(wilcoxon_out)
+colnames(wilcoxon_out) = c("SGB", "pval")
+wilcoxon_out$signif = NA
+wilcoxon_out$signif[which(as.numeric(as.character(wilcoxon_out$pval)) < 0.01)] = 5
+```
+
+Crispatus exampl ANI increase, median and IQR
+
+```{r}
+SGB_ani = ANI_shared_nz[grep("Prevotella_bivia", ANI_shared_nz$SGB),]
+ani_south = SGB_ani[which(SGB_ani$country == "South_Africa"),]$ANI_val
+ani_north = SGB_ani[which(SGB_ani$country == "North_America"),]$ANI_val
+
+median(ani_south)
+quantile(ani_south)
+median(ani_north)
+quantile(ani_north)
+```
+
+Compute Wilcoxon for Gene count
+
+```{r}
+wilcoxon_out_genes = NULL
+for(SGB in unique(as.character(gene_counts_shared$SGB))){
+  
+  SGB_gene = gene_counts_shared[which(gene_counts_shared$SGB == SGB),]
+  gene_south = SGB_gene[which(SGB_gene$country == "South_Africa"),]$geneCount
+  gene_north = SGB_gene[which(SGB_gene$country == "North_America"),]$geneCount
+  
+  test_out = wilcox.test(gene_south, gene_north)
+  wilcoxon_out_genes = rbind(wilcoxon_out_genes, c(SGB, test_out$p.value)) 
+
+}
+
+wilcoxon_out_genes = as.data.frame(wilcoxon_out_genes)
+colnames(wilcoxon_out_genes) = c("SGB", "pval")
+wilcoxon_out_genes$signif = NA
+wilcoxon_out_genes$signif[which(as.numeric(as.character(wilcoxon_out_genes$pval)) < 0.01)] = 3050
+```
+
+ANI density plot, order by largest median
+
+```{r, fig.width=10, fig.height=20}
+ANI_plot = ggplot(ANI_shared_nz, aes(y = ANI_val, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.8)) + geom_vline(xintercept = as.numeric(ANI_shared_nz$SGB), linetype="dotted", size=0.5, alpha = 0.5)  + geom_point(wilcoxon_out, mapping = aes(x = SGB, y = signif), shape = 17, colour = "purple", size = 3) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(keepers_melt_shared$SGB), linetype="dotted", size=0.5, alpha = 0.3) + coord_flip() 
+```
+
+line plot with genome count
+
+```{r, fig.width=10, fig.height=20}
+genome_count_plot = ggplot(data=keepers_melt_shared, aes(x=SGB, y=log10(count), group=country)) + geom_point(aes(colour = country)) + geom_vline(xintercept = as.numeric(ANI_shared_nz$SGB), linetype="dotted", size=0.5, alpha = 0.5) + geom_text_repel(aes(label = count, colour = country), size = 3) + geom_line(aes(colour = country)) + ylab("#genome(log10)") + theme(axis.text.y = element_text(size = 8), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none")+ coord_flip()
+```
+
+Gene count
+
+```{r}
+geneCount_plot = ggplot(gene_counts_shared, aes(y = geneCount, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.8)) + geom_vline(xintercept = as.numeric(gene_counts_shared$SGB), linetype="dotted", size=0.5, alpha = 0.5) + geom_point(wilcoxon_out_genes, mapping = aes(x = SGB, y = signif), shape = 17, colour = "purple", size = 3) + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none", axis.ticks.y = element_blank())+ coord_flip()
+```
+
+line plot with pangenome size
+
+```{r}
+pangenome_plot = ggplot(data=pangenome_expansion_nz_shared, aes(x=SGB, y= percent, group=country)) + geom_point(aes(colour = country)) + geom_line(aes(colour = country)) + ylab("Expanded_pangenome(%)") + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=0.5, alpha = 0.3) + coord_flip()
+```
+
+Pangenome stacked barplot
+
+```{r}
+SGBS = unique(as.character(pangenome_overlap_shared$SGB))
+
+percents = NULL
+for(SGB in SGBS){
+  
+  SGB_sub = pangenome_overlap_shared[which(pangenome_overlap_shared$SGB == SGB),]
+  south = SGB_sub[which(SGB_sub$country == "South_Africa"),]
+  north = SGB_sub[which(SGB_sub$country == "North_America"),]
+  overlap = SGB_sub[which(SGB_sub$country == "overlap"),]
+  pan = SGB_sub[which(SGB_sub$country == "ref"),]
+  
+  #if(pan$geneCount > 0){
+  
+  allGenes = sum(south$geneCount, north$geneCount, overlap$geneCount, pan$geneCount)
+  #left_over = pan$geneCount - sum(south$geneCount, north$geneCount, overlap$geneCount)
+    
+  percents = rbind(percents, c(SGB, south$geneCount/allGenes  * 100, "South"))
+  percents = rbind(percents, c(SGB, north$geneCount/allGenes  * 100, "North")) 
+  percents = rbind(percents, c(SGB, overlap$geneCount/allGenes  * 100, "Overlap"))
+  percents = rbind(percents, c(SGB, pan$geneCount/allGenes  * 100, "Ref"))
+  
+ # }
+}
+
+pangenome_percents = as.data.frame(percents)
+colnames(pangenome_percents) = c("SGB", "percent", "country")
+pangenome_percents$SGB = factor(pangenome_percents$SGB, levels = shared_sgbs, ordered = T)
+country_order = c("Ref", "Overlap", "North", "South")
+pangenome_percents$country = factor(pangenome_percents$country, levels = rev(country_order), ordered = T)
+pangenome_percents$SGB = factor(pangenome_percents$SGB, levels = shared_sgbs, ordered = T)
+  
+pangenome_barplot = ggplot(data=pangenome_percents, aes(x=SGB, y= as.numeric(as.character(percent)), fill=country)) + geom_bar(position="stack", stat="identity", width = 0.5) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank())+ coord_flip() + ylab("Pangenome(%)")
+```
+
+Expansion pangenome comparison
+
+```{r}
+pangenome_percents_overlap = as.numeric(as.character(pangenome_percents[pangenome_percents$country == "Overlap",]$percent))
+quantile(pangenome_percents_overlap)
+median(pangenome_percents_overlap)
+
+pangenome_percents_North = as.numeric(as.character(pangenome_percents[pangenome_percents$country == "North",]$percent))
+quantile(pangenome_percents_North)
+median(pangenome_percents_North)
+
+pangenome_percents_South = as.numeric(as.character(pangenome_percents[pangenome_percents$country == "South",]$percent))
+quantile(pangenome_percents_South)
+median(pangenome_percents_South)
+```
+
+Viruelnce stacked barplot
+
+```{r}
+SGBS = unique(as.character(vf_overlap_shared$SGB))
+
+vf_percents = NULL
+for(SGB in SGBS){
+  
+  SGB_sub = vf_overlap_shared[which(vf_overlap_shared$SGB == SGB),]
+  south = SGB_sub[which(SGB_sub$country == "South_Africa"),]
+  north = SGB_sub[which(SGB_sub$country == "North_America"),]
+  overlap = SGB_sub[which(SGB_sub$country == "overlap"),]
+  pan = SGB_sub[which(SGB_sub$country == "ref"),]
+  
+  #if(pan$geneCount > 0){
+  
+  allGenes = sum(south$geneCount, north$geneCount, overlap$geneCount, pan$geneCount)
+  #left_over = pan$geneCount - sum(south$geneCount, north$geneCount, overlap$geneCount)
+    
+  vf_percents = rbind(vf_percents, c(SGB, south$geneCount/allGenes  * 100, "South"))
+  vf_percents = rbind(vf_percents, c(SGB, north$geneCount/allGenes  * 100, "North")) 
+  vf_percents = rbind(vf_percents, c(SGB, overlap$geneCount/allGenes  * 100, "Overlap"))
+  vf_percents = rbind(vf_percents, c(SGB, pan$geneCount/allGenes  * 100, "Ref"))
+  
+  #}
+}
+
+vf_percents = as.data.frame(vf_percents)
+colnames(vf_percents) = c("SGB", "percent", "country")
+vf_percents$SGB = factor(vf_percents$SGB, levels = shared_sgbs, ordered = T)
+country_order = c("Ref", "Overlap", "North", "South")
+vf_percents$country = factor(vf_percents$country, levels = rev(country_order), ordered = T)
+vf_percents$SGB = factor(vf_percents$SGB, levels = shared_sgbs, ordered = T)
+  
+vf_barplot = ggplot(data=vf_percents, aes(x=SGB, y= as.numeric(as.character(percent)), fill=country)) + geom_bar(position="stack", stat="identity", width = 0.5) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(),  axis.ticks.y = element_blank())+ coord_flip() + ylab("Virulence_factor(%)")
+```
+
+Expansion virulence
+
+```{r}
+vf_percents_overlap = as.numeric(as.character(vf_percents[vf_percents$country == "Overlap",]$percent))
+quantile(vf_percents_overlap)
+median(vf_percents_overlap)
+
+vf_percents_North = as.numeric(as.character(vf_percents[vf_percents$country == "North",]$percent))
+quantile(vf_percents_North)
+median(vf_percents_North)
+
+vf_percents_South = as.numeric(as.character(vf_percents[vf_percents$country == "South",]$percent))
+quantile(vf_percents_South)
+median(vf_percents_South)
+```
+
+Metabolism stacked barplot
+
+```{r}
+SGBS = unique(as.character(ko_overlap_shared$SGB))
+
+ko_percents = NULL
+for(SGB in SGBS){
+  
+  SGB_sub = ko_overlap_shared[which(ko_overlap_shared$SGB == SGB),]
+  south = SGB_sub[which(SGB_sub$country == "South_Africa"),]
+  north = SGB_sub[which(SGB_sub$country == "North_America"),]
+  overlap = SGB_sub[which(SGB_sub$country == "overlap"),]
+  pan = SGB_sub[which(SGB_sub$country == "ref"),]
+  
+  #if(pan$geneCount > 0){
+  
+  allGenes = sum(south$geneCount, north$geneCount, overlap$geneCount, pan$geneCount)
+  #left_over = pan$geneCount - sum(south$geneCount, north$geneCount, overlap$geneCount)
+    
+  ko_percents = rbind(ko_percents, c(SGB, south$geneCount/allGenes  * 100, "South"))
+  ko_percents = rbind(ko_percents, c(SGB, north$geneCount/allGenes  * 100, "North")) 
+  ko_percents = rbind(ko_percents, c(SGB, overlap$geneCount/allGenes  * 100, "Overlap"))
+  ko_percents = rbind(ko_percents, c(SGB, pan$geneCount/allGenes  * 100, "Ref"))
+  
+  #}
+}
+
+ko_percents = as.data.frame(ko_percents)
+colnames(ko_percents) = c("SGB", "percent", "country")
+ko_percents$SGB = factor(ko_percents$SGB, levels = shared_sgbs, ordered = T)
+country_order = c("Ref", "Overlap", "North", "South")
+ko_percents$country = factor(ko_percents$country, levels = rev(country_order), ordered = T)
+ko_percents$SGB = factor(ko_percents$SGB, levels = shared_sgbs, ordered = T)
+  
+ko_barplot = ggplot(data=ko_percents, aes(x=SGB, y= as.numeric(as.character(percent)), fill=country)) + geom_bar(position="stack", stat="identity", width = 0.5) + theme(axis.title.y  =  element_blank(), legend.position = "none", panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(),  axis.ticks.y = element_blank())+ coord_flip() + ylab("Metabolism_ko(%)")
+```
+
+Expansion metabolism
+
+```{r}
+ko_percents_overlap = as.numeric(as.character(ko_percents[ko_percents$country == "Overlap",]$percent))
+quantile(ko_percents_overlap)
+median(ko_percents_overlap)
+
+ko_percents_North = as.numeric(as.character(ko_percents[ko_percents$country == "North",]$percent))
+quantile(ko_percents_North)
+median(ko_percents_North)
+
+ko_percents_South = as.numeric(as.character(ko_percents[ko_percents$country == "South",]$percent))
+quantile(ko_percents_South)
+median(ko_percents_South)
+```
+
+line plot with virulen size
+
+```{r}
+vir_plot = ggplot(data=vf_expansion_shared, aes(x=SGB, y= percent, group=country)) + geom_point(aes(colour = country)) + geom_line(aes(colour = country)) + ylab("Expanded_virulence(%)") + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(vf_expansion_shared$SGB), linetype="dotted", size=0.5, alpha = 0.3)  + coord_flip()
+```
+
+line plot with metabolism size
+
+```{r}
+ko_plot = ggplot(data=ko_expansion_shared, aes(x=SGB, y= percent, group=country)) + geom_point(aes(colour = country)) + geom_line(aes(colour = country)) + ylab("Expanded_metabolism(%)") + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none") + geom_vline(xintercept = as.numeric(ko_expansion_shared$SGB), linetype="dotted", size=0.5, alpha = 0.3)  + coord_flip()
+```
+
+Combine plots 
+
+```{r, fig.width= 20, fig.height=6}
+pdf(file = "SGB_expansion_North_and_South_3Oct2021.pdf", height = 6, width = 20)
+plot_grid(genome_count_plot, ANI_plot, geneCount_plot,  pangenome_barplot, ko_barplot, vf_barplot, nrow = 1, rel_widths = c(4,1.6,1.6,1,1,1.6), align = "h")
+dev.off()
+```
+
+Break plots up by genus and leave out metabolism and virulence
+
+```{r, fig.width= 20, fig.height=3}
+Lactos_genome_count = keepers_melt_shared[grep("Lact", keepers_melt_shared$SGB),]
+Lactos_ANI = ANI_shared_nz[grep("Lact", ANI_shared_nz$SGB),]
+Lactos_genes = gene_counts_shared[grep("Lacto", gene_counts_shared$SGB),]
+Lactos_pangenomes = pangenome_percents[grep("Lact", pangenome_percents$SGB),]
+
+Lacto_wilcox = wilcoxon_out[grep("Lact", wilcoxon_out$SGB),]
+Lacto_wilcoxon_out_genes = wilcoxon_out_genes[grep("Lact", wilcoxon_out_genes$SGB),]
+
+genome_count_plot = ggplot(data=Lactos_genome_count, aes(x=SGB, y=log10(count), group=country))  + geom_line(aes(colour = country)) + geom_point(aes(colour = country), size = 3, shape = 19) + ylab("#genome(log10)") + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none") + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + ylim(0, 2.6)   + geom_text_repel(aes(label = count, colour = country), size = 5) + coord_flip()
+
+ANI_plot = ggplot(Lactos_ANI, aes(y = ANI_val, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Lacto_wilcox, mapping = aes(x = SGB, y = signif), shape = 17, colour = "purple", size = 5) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip() 
+
+geneCount_plot = ggplot(Lactos_genes, aes(y = geneCount, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Lacto_wilcoxon_out_genes, mapping = aes(x = SGB, y = signif), shape =17, colour = "purple", size = 5) + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip()
+
+pangenome_barplot = ggplot(data=Lactos_pangenomes, aes(x=SGB, y= as.numeric(as.character(percent)), fill=country)) + geom_bar(position="stack", stat="identity", width = 0.8) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank())+ coord_flip() + ylab("Pangenome(%)")
+
+lacto_combined = plot_grid(ANI_plot, geneCount_plot, pangenome_barplot, nrow = 1, rel_widths = c(1,1,0.8), align = "h")
+```
+
+Gard plots
+
+```{r, fig.width= 20, fig.height=3}
+Gard_genome_count = keepers_melt_shared[grep("Gard", keepers_melt_shared$SGB),]
+Gard_ANI = ANI_shared_nz[grep("Gard", ANI_shared_nz$SGB),]
+Gard_genes = gene_counts_shared[grep("Gard", gene_counts_shared$SGB),]
+Gard_pangenomes = pangenome_percents[grep("Gard", pangenome_percents$SGB),]
+
+Gard_wilcox = wilcoxon_out[grep("Gard", wilcoxon_out$SGB),]
+Gard_wilcoxon_out_genes = wilcoxon_out_genes[grep("Gard", wilcoxon_out_genes$SGB),]
+
+genome_count_plot = ggplot(data=Gard_genome_count, aes(x=SGB, y=log10(count), group=country))  + geom_line(aes(colour = country)) + geom_point(aes(colour = country), size = 3, shape = 19) + ylab("#genome(log10)") + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none") + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3)  + geom_text_repel(aes(label = count, colour = country), size = 5) + ylim(0, 2.6) + coord_flip()
+
+ANI_plot = ggplot(Gard_ANI, aes(y = ANI_val, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Gard_wilcox, mapping = aes(x = SGB, y = signif), shape = 17, colour = "purple", size = 5) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip() 
+
+geneCount_plot = ggplot(Gard_genes, aes(y = geneCount, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Gard_wilcoxon_out_genes, mapping = aes(x = SGB, y = signif), shape =17, colour = "purple", size = 5) + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip()
+
+pangenome_barplot = ggplot(data=Gard_pangenomes, aes(x=SGB, y= as.numeric(as.character(percent)), fill=country)) + geom_bar(position="stack", stat="identity", width = 0.8) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank())+ coord_flip() + ylab("Pangenome(%)")
+
+Gard_combined = plot_grid(ANI_plot, geneCount_plot, pangenome_barplot, nrow = 1, rel_widths = c(1,1,0.8), align = "h")
+```
+
+Prev plots
+
+```{r, fig.width= 20, fig.height=3}
+Prev_genome_count = keepers_melt_shared[grep("Prev", keepers_melt_shared$SGB),]
+Prev_ANI = ANI_shared_nz[grep("Prev", ANI_shared_nz$SGB),]
+Prev_genes = gene_counts_shared[grep("Prev", gene_counts_shared$SGB),]
+Prev_pangenomes = pangenome_percents[grep("Prev", pangenome_percents$SGB),]
+
+Prev_wilcox = wilcoxon_out[grep("Prev", wilcoxon_out$SGB),]
+Prev_wilcoxon_out_genes = wilcoxon_out_genes[grep("Prev", wilcoxon_out_genes$SGB),]
+
+genome_count_plot = ggplot(data=Prev_genome_count, aes(x=SGB, y=log10(count), group=country))  + geom_line(aes(colour = country)) + geom_point(aes(colour = country), size = 3, shape = 19) + ylab("#genome(log10)") + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none") + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + ylim(0, 2.6)  + geom_text_repel(aes(label = count, colour = country), size = 5) + coord_flip()
+
+ANI_plot = ggplot(Prev_ANI, aes(y = ANI_val, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Prev_wilcox, mapping = aes(x = SGB, y = signif), shape = 17, colour = "purple", size = 5) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip() 
+
+geneCount_plot = ggplot(Prev_genes, aes(y = geneCount, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Prev_wilcoxon_out_genes, mapping = aes(x = SGB, y = signif), shape =17, colour = "purple", size = 5) + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip()
+
+pangenome_barplot = ggplot(data=Prev_pangenomes, aes(x=SGB, y= as.numeric(as.character(percent)), fill=country)) + geom_bar(position="stack", stat="identity", width = 0.8) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank())+ coord_flip() + ylab("Pangenome(%)")
+
+Prev_combined = plot_grid(ANI_plot, geneCount_plot, pangenome_barplot, nrow = 1, rel_widths = c(1,1,0.8), align = "h")
+```
+
+Other plots
+
+```{r, fig.width= 20, fig.height=3}
+Other_genome_count = keepers_melt_shared[-grep("Lact|Gard|Prev", keepers_melt_shared$SGB),]
+Other_ANI = ANI_shared_nz[-grep("Lact|Gard|Prev", ANI_shared_nz$SGB),]
+Other_genes = gene_counts_shared[-grep("Lact|Gard|Prev", gene_counts_shared$SGB),]
+Other_pangenomes = pangenome_percents[-grep("Lact|Gard|Prev", pangenome_percents$SGB),]
+
+Other_wilcox = wilcoxon_out[-grep("Lact|Gard|Prev", wilcoxon_out$SGB),]
+Other_wilcoxon_out_genes = wilcoxon_out_genes[-grep("Lact|Gard|Prev", wilcoxon_out_genes$SGB),]
+
+genome_count_plot = ggplot(data=Other_genome_count, aes(x=SGB, y=log10(count), group=country))  + geom_line(aes(colour = country)) + geom_point(aes(colour = country), size = 3, shape = 19) + ylab("#genome(log10)") + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none") + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3)  + geom_text_repel(aes(label = count, colour = country), size = 5) + ylim(0, 2.6) + coord_flip()
+
+ANI_plot = ggplot(Other_ANI, aes(y = ANI_val, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Other_wilcox, mapping = aes(x = SGB, y = signif), shape = 17, colour = "purple", size = 5) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip() 
+
+geneCount_plot = ggplot(Other_genes, aes(y = geneCount, x = SGB)) + geom_boxplot(aes(colour = country), outlier.shape = NA, width = 0.5, position=position_dodge(0.6), lwd = 1) + geom_point(Other_wilcoxon_out_genes, mapping = aes(x = SGB, y = signif), shape =17, colour = "purple", size = 5) + theme(axis.text.y = element_blank(), axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), legend.position = "none", axis.ticks.y = element_blank()) + geom_vline(xintercept = as.numeric(pangenome_expansion_nz_shared$SGB), linetype="dotted", size=1, alpha = 0.3) + coord_flip()
+
+pangenome_barplot = ggplot(data=Other_pangenomes, aes(x=SGB, y= as.numeric(as.character(percent)), fill=country)) + geom_bar(position="stack", stat="identity", width = 0.8) + theme(axis.title.y  =  element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size = 0.5), axis.text.y = element_blank(), legend.position = "none", axis.ticks.y = element_blank())+ coord_flip() + ylab("Pangenome(%)")
+
+Other_combined = plot_grid(ANI_plot, geneCount_plot, pangenome_barplot, nrow = 1, rel_widths = c(1,1,0.8), align = "h")
+```
+
+Combined 
+
+```{r, fig.width= 8, fig.height=12}
+combined_plots = plot_grid(lacto_combined, Gard_combined, Prev_combined, Other_combined, nrow = 4, align = "v")
+ggsave(combined_plots, file = "SGB_expansion_North_and_South_21Oct_split.pdf", height = 12, width = 8, useDingbats=FALSE)
+
+combined_plots
+```
+
+
+
+
